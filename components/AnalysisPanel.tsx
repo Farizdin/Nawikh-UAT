@@ -89,6 +89,7 @@ export function AnalysisPanel({ locale, submission }: AnalysisPanelProps) {
           <div className="mt-4">
             <Badge tone={decisionTone(analysis.finalDecision)}>{decision}</Badge>
           </div>
+
         </div>
       </div>
 
@@ -220,5 +221,7 @@ function ListBlock({ title, items, emptyText, tone }: ListBlockProps) {
     </div>
   );
 }
+
+
 
 

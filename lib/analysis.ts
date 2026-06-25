@@ -76,7 +76,14 @@ export function analyzeSubmission(submission: UatSubmission, taskBank: UatTask[]
   ].filter(Boolean);
 
   const recommendedImprovements = buildRecommendations(submission, failedTasks, notTestedTasks, averageSatisfaction, taskBank);
-  const finalDecision = getFinalDecision(successPercentage, averageSatisfaction, submission.feedback.acceptance);
+  const finalDecision = getFinalDecision(
+    successPercentage,
+    averageSatisfaction,
+    submission.feedback.acceptance,
+    failedTasks.length,
+    notTestedTasks.length,
+    totalTasks
+  );
 
   return {
     totalTasks,
@@ -97,12 +104,28 @@ export function analyzeSubmission(submission: UatSubmission, taskBank: UatTask[]
   };
 }
 
-function getFinalDecision(successPercentage: number, averageSatisfaction: number, acceptance: string) {
-  if (successPercentage < 75 || averageSatisfaction < 3.5 || acceptance === "No") {
+function getFinalDecision(
+  successPercentage: number,
+  averageSatisfaction: number,
+  acceptance: string,
+  failedTaskCount: number,
+  notTestedTaskCount: number,
+  totalTaskCount: number
+) {
+  const failedPercentage = totalTaskCount > 0 ? (failedTaskCount / totalTaskCount) * 100 : 100;
+  const meetsAcceptanceChoice = acceptance === "Yes" || acceptance === "Yes, with minor improvements";
+  const meetsDecisionCriteria =
+    successPercentage >= 90 &&
+    averageSatisfaction >= 3.8 &&
+    meetsAcceptanceChoice &&
+    failedPercentage <= 10 &&
+    notTestedTaskCount === 0;
+
+  if (!meetsDecisionCriteria) {
     return "Not accepted / Needs improvement" as const;
   }
 
-  if (successPercentage >= 90 && averageSatisfaction >= 4.5 && acceptance === "Yes") {
+  if (acceptance === "Yes") {
     return "Accepted" as const;
   }
 
@@ -159,3 +182,5 @@ export function summarizeDashboard(submissions: UatSubmission[]): DashboardSumma
     notAcceptedCount: analyses.filter((analysis) => analysis.finalDecision === "Not accepted / Needs improvement").length
   };
 }
+
+
