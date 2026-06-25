@@ -15,13 +15,20 @@ export default function Home() {
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null);
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [submittedName, setSubmittedName] = useState<string | null>(null);
+  const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(true);
+  const [isSavingSubmission, setIsSavingSubmission] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      const storedSubmissions = getSubmissions();
-      setSubmissions(storedSubmissions);
-      setSelectedSubmissionId(storedSubmissions[0]?.id ?? null);
-      setAdminUnlocked(window.sessionStorage.getItem("nawikh-uat-owner-unlocked") === "true");
+      async function loadSubmissions() {
+        const storedSubmissions = await getSubmissions();
+        setSubmissions(storedSubmissions);
+        setSelectedSubmissionId(storedSubmissions[0]?.id ?? null);
+        setAdminUnlocked(window.sessionStorage.getItem("nawikh-uat-owner-unlocked") === "true");
+        setIsLoadingSubmissions(false);
+      }
+
+      void loadSubmissions();
     }, 0);
 
     return () => window.clearTimeout(timer);
@@ -32,11 +39,13 @@ export default function Home() {
     [selectedSubmissionId, submissions]
   );
 
-  function handleSubmit(submission: UatSubmission) {
-    const nextSubmissions = addSubmission(submission);
+  async function handleSubmit(submission: UatSubmission) {
+    setIsSavingSubmission(true);
+    const nextSubmissions = await addSubmission(submission);
     setSubmissions(nextSubmissions);
     setSelectedSubmissionId(submission.id);
     setSubmittedName(submission.respondent.name);
+    setIsSavingSubmission(false);
     window.setTimeout(() => {
       document.getElementById("owner-access")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 50);
@@ -52,8 +61,8 @@ export default function Home() {
     setAdminUnlocked(false);
   }
 
-  function handleResetSample() {
-    const sample = resetToSampleData();
+  async function handleResetSample() {
+    const sample = await resetToSampleData();
     setSubmissions(sample);
     setSelectedSubmissionId(sample[0]?.id ?? null);
   }
@@ -114,6 +123,11 @@ export default function Home() {
 
         <section id="uat-form">
           <UatForm locale={locale} onSubmit={handleSubmit} />
+          {isSavingSubmission ? (
+            <p className="mt-3 rounded border border-cyan-300/30 bg-slate-900/80 px-4 py-3 text-sm font-semibold text-cyan-50">
+              {locale === "en" ? "Saving response..." : "Sedang menyimpan respons..."}
+            </p>
+          ) : null}
         </section>
 
         {submittedName && !adminUnlocked ? (
@@ -136,6 +150,12 @@ export default function Home() {
           <AdminAccess locale={locale} unlocked={adminUnlocked} onUnlock={handleUnlock} onLock={handleLock} />
         </section>
 
+        {isLoadingSubmissions ? (
+          <p className="rounded border border-cyan-300/30 bg-slate-900/80 px-4 py-3 text-sm font-semibold text-cyan-50">
+            {locale === "en" ? "Loading submissions..." : "Sedang memuatkan penyerahan..."}
+          </p>
+        ) : null}
+
         {adminUnlocked ? (
           <>
             <section id="latest-analysis" className="scroll-mt-6">
@@ -157,5 +177,7 @@ export default function Home() {
     </main>
   );
 }
+
+
 
 
